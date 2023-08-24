@@ -5,3 +5,5 @@ build/*
 lib/*
 include/*
 
+compile_commands.json
+

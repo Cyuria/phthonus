@@ -1,9 +1,14 @@
+
 #include <stdio.h>
 
-#include <sdl/SDL.h>
+#include <SDL.h>
+
+#include "tmp.h"
 
 int SDL_main(int argc, char* argv[]) {
-  printf("Hello, World!");
+  (void) argc; (void) argv;
+
+  printf("Hello, World! %d\n", add(1, 2));
 
   return 0;
 }

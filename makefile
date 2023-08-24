@@ -1,5 +1,5 @@
 # Files
-sources := main
+sources := main tmp
 libs := SDL2main SDL2
 output := phthonus
 
@@ -29,9 +29,15 @@ ifeq ($(uname_s),Linux)
 endif
 
 cc := clang
-cl := clang
 
-libargs := $(foreach lib,$(libs),-l$(lib))
+compileflags := -std=c11
+linkflags :=
+warnings := all extra pedantic
+
+compileflags := $(compileflags) $(foreach w,$(warnings),-W$(w))
+linkflags := $(linkflags)
+
+libargs := $(foreach l,$(libs),-l$(l))
 objfiles := $(foreach f,$(sources),$(f).o)
 objpaths := $(foreach f,$(objfiles),$(build)/$(f))
 
@@ -46,7 +52,7 @@ vpath %.c $(src)
 vpath %$(libext) $(bin)
 vpath %$(execext) $(bin)
 
-.PHONY: all tag clean fresh
+.PHONY: all tag clean fresh compile_commands
 
 all: tag $(outputfile) $(dynamiclibs)
 
@@ -59,9 +65,6 @@ tag:
 	@echo "*   requires: $(dynamiclibs)"
 	@echo "* ---------------------------- "
 
-$(outputfile): $(objfiles)
-	$(cl) $(objpaths) $(libdirs) $(libargs) -o $(bin)/$@
-
 clean:
 	@echo "cleaning generated files"
 	-rm -f $(objpaths)
@@ -69,9 +72,46 @@ clean:
 	-rm -f $(foreach lib,$(dynamiclibs),$(bin)/$(lib))
 	ls $(build) $(bin)
 
+# Linking
+$(outputfile): $(objfiles)
+	$(cc) $(objpaths) $(linkflags) $(libdirs) $(libargs) -o $(bin)/$@
+
+# Compiling object files
 %.o : $(src)/%.c
-	$(cc) -c $< -o $(build)/$@ $(incdirs)
+	$(cc) $< $(compileflags) -c -o $(build)/$@ $(incdirs)
 
 $(dynamiclibs):
 	cp $(lib)/$@ $(bin)/$@
+
+commandjson := compile_commands.json
+compile_command_files := $(foreach f,$(sources),$(f)_fcc)
+
+makedir := $(shell pwd)
+# Windows is special
+ifeq ($(OS),Windows_NT)
+	# Handle Cygwin/MSYS2 style paths
+	makedir := $(patsubst /c%,C:%,$(makedir))
+	# Avoid stupid shell backslash escape problems
+	# as well as JSON backslash escape issues
+	# Clangd can handle slashes in windows paths
+	makedir := $(subst \,/,$(makedir))
+endif
+
+.PHONY: initial_compile_command final_compile_command $(compile_command_files)
+
+compile_commands: initial_compile_command $(compile_command_files) final_compile_command
+
+initial_compile_command:
+	@echo "[" > $(commandjson)
+final_compile_command:
+	@echo "]" >> $(commandjson)
+
+$(compile_command_files):
+	@echo "Adding command for file: $@ $(src)/$(@:_fcc=.c) $(build)/$(@:_fcc=.o)"
+	@echo "  {" >> $(commandjson)
+	@echo "    \"directory\": \"$(makedir)\"," >> $(commandjson)
+	@echo "    \"command\": \"$(cc) $(src)/$(@:_fcc=.c) $(compileflags) -c -o $(build)/$(@:_fcc=.o) $(incdirs)\"," >> $(commandjson)
+	@echo "    \"file\": \"$(src)/$(@:_fcc=.c)\"," >> $(commandjson)
+	@echo "    \"output\": \"$(build)/$(@:_fcc=.o)\"" >> $(commandjson)
+	@echo "  }," >> $(commandjson)
 
