@@ -1,9 +1,10 @@
 # Files
-sources := main tmp
+# leave sources blank to autogenerate
+sources :=
 libs := SDL2main SDL2
 output := phthonus
-
 dynamiclibs := SDL2
+config := debug
 
 # Directories
 inc := include h
@@ -28,14 +29,28 @@ ifeq ($(uname_s),Linux)
 	libext :=.so
 endif
 
+# find sources automatically
+ifeq ($(strip $(sources)),)
+	sources := $(patsubst $(src)/%.c,%,$(wildcard $(src)/*.c))
+endif
+
 cc := clang
+cflags := -std=c11
+lflags := 
 
-compileflags := -std=c11
-linkflags :=
-warnings := all extra pedantic
+debugcflags := -Wall -Wextra -Wpedantic
+debuglflags := -Wl,--subsystem,console
+releasecflags := -O3
+releaselflags := -Wl,--subsystem,windows
 
-compileflags := $(compileflags) $(foreach w,$(warnings),-W$(w))
-linkflags := $(linkflags)
+ifeq ($(config),debug)
+	cflags += $(debugcflags)
+	lflags += $(debuglflags)
+endif
+ifeq ($(config),release)
+	cflags += $(releasecflags)
+	lflags += $(releaselflags)
+endif
 
 libargs := $(foreach l,$(libs),-l$(l))
 objfiles := $(foreach f,$(sources),$(f).o)
@@ -54,7 +69,7 @@ vpath %$(execext) $(bin)
 
 .PHONY: all tag clean fresh compile_commands
 
-all: tag $(outputfile) $(dynamiclibs)
+all: tag $(outputfile) $(dynamiclibs) assets
 
 fresh: tag clean all
 
@@ -63,6 +78,8 @@ tag:
 	@echo "* Building for: $(OS)"
 	@echo "*   executable: $(outputfile)"
 	@echo "*   requires: $(dynamiclibs)"
+	@echo "* Build configuration: $(config)"
+	@echo "* CFlags: $(cflags)"
 	@echo "* ---------------------------- "
 
 clean:
@@ -74,11 +91,11 @@ clean:
 
 # Linking
 $(outputfile): $(objfiles)
-	$(cc) $(objpaths) $(linkflags) $(libdirs) $(libargs) -o $(bin)/$@
+	$(cc) $(objpaths) $(cflags) $(lflags) $(libdirs) $(libargs) -o $(bin)/$@
 
 # Compiling object files
 %.o : $(src)/%.c
-	$(cc) $< $(compileflags) -c -o $(build)/$@ $(incdirs)
+	$(cc) $< $(cflags) -c -o $(build)/$@ $(incdirs)
 
 $(dynamiclibs):
 	cp $(lib)/$@ $(bin)/$@
@@ -96,6 +113,9 @@ ifeq ($(OS),Windows_NT)
 	# Clangd can handle slashes in windows paths
 	makedir := $(subst \,/,$(makedir))
 endif
+
+assets:
+	cp assets $(bin)/
 
 .PHONY: initial_compile_command final_compile_command $(compile_command_files)
 
