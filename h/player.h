@@ -2,18 +2,11 @@
 
 #pragma once
 #include "projectile.h"
-
 #include "animation.h"
 
 typedef struct {
-  struct {
-    int x;
-    int y;
-  } pos;
-  struct {
-    float x;
-    float y;
-  } velocity;
+  ivec2 pos;
+  fvec2 velocity;
   struct {
     int health;
     int mana;
@@ -33,21 +26,29 @@ typedef struct {
   } current;
   struct {
     int frame;
-    int stoptime;
+    int frametime;
     PlayerAnimation name;
+    void (*finishanimation)(void);
   } animation;
+  int blocking;
 } player_s;
 extern player_s player;
 
-void move_player(int);
+void move_player(int direction);
 
 void update_player_collisions(void);
 
-void update_player(float);
+void update_player(float elapsedseconds);
 
-void calc_player_hit(Projectile);
+void calc_player_hit(Projectile p);
 
-void player_spawn_attack(void);
+void player_attack(fvec2 relmousepos);
 
-void player_block(void);
+void player_block_toggle(void);
+void player_start_block(void);
+void player_stop_block(void);
+void player_finish_start_block(void);
+void player_finish_stop_block(void);
+
+void player_walk_reset_anim(void);
 

@@ -1,30 +1,31 @@
 // Copyright (c) Cyuria 2023, see LICENSE.txt for more information
 
 #pragma once
-#include "projectile.h"
+#include <time.h>
+#include "assets.h"
+#include "utils.h"
 
-enum dmg { PHYSICAL, MAGIC, SOUL, TRUE };
+typedef enum { PHYSICAL, MAGIC, SOUL, TRUE } dmg;
 
-struct hitbox_s {
+typedef struct {
   int w;
   int h;
-};
-typedef struct hitbox_s Hitbox;
+} Hitbox;
 
-struct projectile_s {
+typedef struct {
   Hitbox hitbox;
-  struct {
-    int x;
-    int y;
-  } pos;
-  struct {
-    float x;
-    float y;
-  } speed;
+  ivec2 pos;
+  fvec2 velocity;
   int damage;
-  enum dmg dmgtype;
-};
-typedef struct projectile_s Projectile;
+  dmg type;
+  int deathtime;
+} Projectile;
 
-Projectile create_projectile(int, int, int, int, float, float, int, enum dmg);
+Projectile create_projectile(
+  const ivec2 pos,
+  const Hitbox hb,
+  const fvec2 velocity,
+  const int damage,
+  const dmg type,
+  const clock_t duration);
 

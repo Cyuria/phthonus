@@ -1,7 +1,9 @@
 // Copyright (c) Cyuria 2023, see LICENSE.txt for more information
 
 typedef enum {
-  block,
+  noanim,
+  startblock,
+  stopblock,
   attack,
   dash,
   jump,

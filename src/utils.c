@@ -1,11 +1,11 @@
 // Copyright (c) Cyuria 2023, see LICENSE.txt for more information
 
+#include "utils.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "system.h"
-#include "utils.h"
 
 int printerr(const char* err, const char* errmsg, const int retval)
 {
@@ -25,5 +25,15 @@ void setcwd(char* exepath)
   memcpy(path, exepath, parent);
   path[parent] = 0;
   chdir(path);
+  free(path);
+}
+
+float ivec2_len(const ivec2 v)
+{
+  return sqrtf(v.x * v.x + v.y * v.y);
+}
+float fvec2_len(const fvec2 v)
+{
+  return sqrtf(v.x * v.x + v.y * v.y);
 }
 

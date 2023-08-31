@@ -7,6 +7,7 @@
 #include <sdl/SDL.h>
 
 #include "assets.h"
+#include "camera.h"
 #include "player.h"
 #include "settings.h"
 #include "system.h"
@@ -22,11 +23,11 @@ static void loop(void);
 static void event(SDL_Event*);
 
 SDL_Window* window = NULL;
-SDL_Surface* screen = NULL;
+SDL_Renderer* renderer = NULL;
 
 struct {
   int running;
-  SDL_Surface* background;
+  SDL_Texture* background;
 } state;
 
 int SDL_main(int argc, char* argv[])
@@ -88,7 +89,16 @@ int init_SDL(void)
       SDL_GetError(), -1
     );
 
-  screen = SDL_GetWindowSurface(window);
+  renderer = SDL_CreateRenderer(
+    window, -1,
+    SDL_RENDERER_ACCELERATED
+  );
+
+  if (renderer == NULL)
+    return printerr(
+      "SDL Renderer could not be created, error: %s\n",
+      SDL_GetError(), -1
+    );
 
   return 0;
 }
@@ -96,8 +106,11 @@ int init_SDL(void)
 int close_SDL(void)
 {
 
-  SDL_FreeSurface(state.background);
+  SDL_DestroyTexture(state.background);
   state.background = NULL;
+
+  SDL_DestroyRenderer(renderer);
+  renderer = NULL;
 
   SDL_DestroyWindow(window);
   window = NULL;
@@ -112,7 +125,12 @@ int init_gamestate(void)
   state.running = 1;
 
   {
-    int error = loadBMP(&state.background, "assets/background.bmp");
+    int error = loadBMP(renderer, &state.background, "assets/background.bmp");
+    if (error) return error;
+  }
+
+  {
+    int error = loadAllTextures(renderer);
     if (error) return error;
   }
 
@@ -122,11 +140,11 @@ int init_gamestate(void)
 // TODO: implement screen drawing
 void draw(void)
 {
-  SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0x00, 0xFF, 0xFF));
+  SDL_RenderClear(renderer);
 
-  SDL_BlitSurface(state.background, NULL, screen, NULL);
+  SDL_RenderCopy(renderer, state.background, NULL, NULL);
 
-  SDL_UpdateWindowSurface(window);
+  SDL_RenderPresent(renderer);
 }
 
 // TODO: main loop
@@ -166,13 +184,33 @@ void event(SDL_Event* e)
   if (e->type == SDL_MOUSEBUTTONDOWN)
   {
     if (e->button.button == settings.controls.mouse.attack) {
-      player_spawn_attack();
+      ivec2 mousepos;
+      SDL_GetMouseState(&mousepos.x, &mousepos.y);
+      mousepos.x -= camera.pos.x;
+      mousepos.y -= camera.pos.y;
+      const float invlength = 1 / ivec2_len(mousepos);
+      const fvec2 mouserelpos = {
+        .x = mousepos.x * invlength,
+        .y = mousepos.y * invlength
+      };
+      player_attack(mouserelpos);
       return;
     }
     if (e->button.button == settings.controls.mouse.block) {
-      player_block();
+      if (player.blocking) return;
+      player_start_block();
       return;
     }
+    return;
+  }
+  if (e->type == SDL_MOUSEBUTTONUP)
+  {
+    if (e->button.button == settings.controls.mouse.block) {
+      if (!player.blocking) return;
+      player_stop_block();
+      return;
+    }
+    return;
   }
 }
 
