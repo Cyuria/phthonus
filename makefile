@@ -66,6 +66,7 @@ vpath %.o $(build)
 vpath %.c $(src)
 vpath %$(libext) $(bin)
 vpath %$(execext) $(bin)
+vpath assets $(bin)
 
 .PHONY: all tag clean fresh compile_commands
 
