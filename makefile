@@ -39,9 +39,14 @@ cflags := -std=c11
 lflags := 
 
 debugcflags := -Wall -Wextra -Wpedantic
-debuglflags := -Wl,--subsystem,console
+debuglflags :=
 releasecflags := -O3
-releaselflags := -Wl,--subsystem,windows
+releaselflags :=
+
+ifeq ($(OS),WINDOWS_NT)
+	debuglflags += -Wl,--subsystem,console
+	releaselflags += -Wl,--subsystem,windows
+endif
 
 ifeq ($(config),debug)
 	cflags += $(debugcflags)
