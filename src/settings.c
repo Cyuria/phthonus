@@ -1,6 +1,7 @@
 // Copyright (c) Cyuria 2023, see LICENSE.txt for more information
 
 #include "settings.h"
+#define __STDC_WANT_LIB_EXT1__ 1
 #include <stdio.h>
 
 #include "utils.h"
@@ -12,7 +13,12 @@ const size_t settingssize = 5 * sizeof(int) + 4 * sizeof(SDL_Keycode) + 2 * size
 void load_settings(void)
 {
   FILE* settingsfile = NULL;
+#ifdef __STDC_LIB_EXT1__
   int error = fopen_s(&settingsfile, settingsfilename, "rb");
+#else
+  settingsfile = fopen(settingsfilename, "rb");
+  int error = 0;
+#endif
 
   if (error || settingsfile == NULL) {
     fprintf(stderr, "Could not open settings file, error code: %d\n", error);
@@ -69,7 +75,12 @@ void load_settings(void)
 void save_settings(void)
 {
   FILE* settingsfile = NULL;
+#ifdef __STDC_LIB_EXT1__
   int error = fopen_s(&settingsfile, settingsfilename, "wb");
+#else
+  settingsfile = fopen(settingsfilename, "wb");
+  int error = 0;
+#endif
 
   if (settingsfile == NULL) {
     fprintf(stderr, "Could not open settings file, error code: %d\n", error);
